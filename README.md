@@ -1,2 +1,2 @@
-# MIchaels_repo
+# Michaels_repo
 My repo for my own ideas and personal projects
