@@ -12,7 +12,7 @@ import time
 
 
 host = '192.168.10.2'
-port = 9000
+port = 8889
 locaddr = (host,port)
 
 
