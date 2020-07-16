@@ -10,7 +10,8 @@ reference perhaps?
 
 def listener(data):
     print("hello world")
-    print(data.axes[:])
+    print(data.axes)
+    print(data.buttons)
 
 
 if __name__ == '__main__':

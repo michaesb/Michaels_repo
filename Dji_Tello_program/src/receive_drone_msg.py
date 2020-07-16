@@ -20,8 +20,8 @@ def recv():
     count = 0
     while True:
         try:
-            data, server = sock.recvfrom(1518)
-            print(data.decode(encoding="utf-8"))
+            data, server = sock.recvfrom(1024)
+            print(data)
         except Exception:
             print ('\nExit . . .\n')
             break

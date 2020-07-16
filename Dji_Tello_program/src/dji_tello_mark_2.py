@@ -1,14 +1,8 @@
-#
-# Tello Python3 Control Demo
-#
-# http://www.ryzerobotics.com/
-# Commands: https://dl-cdn.ryzerobotics.com/downloads/tello/0228/Tello+SDK+Readme.pdf
-# 1/1/2018
-
 import threading
 import socket
 import sys
 import time
+
 
 
 host = '192.168.10.2'
@@ -22,40 +16,31 @@ tello_address = ('192.168.10.1', 8889)
 
 sock.bind(locaddr)
 
+
 def recv():
-    count = 0
     while True:
         try:
-            data, server = sock.recvfrom(1518)
-            print(data.decode(encoding="utf-8"))
+            data,server = sock.recvfrom(1024)
+            print(data)
         except Exception:
-            print ('\nExit . . .\n')
+            print("Exiting now. press ctrl+c for full exit")
             break
 
 
-print ('\r\n\r\nTello Python3 Demo.\r\n')
-
-print ('Tello: command takeoff land flip forward back left right \r\n       up down cw ccw speed speed?\r\n')
-
-print ('end -- quit demo.\r\n')
-
-
-#recvThread create
 recvThread = threading.Thread(target=recv)
+recvThread.dameon = True
 recvThread.start()
+
 
 while True:
     try:
         msg = input("");
-
         if not msg:
             break
-
         if 'end' in msg:
             print ('...')
             sock.close()
             break
-
         # Send data
         msg = msg.encode(encoding="utf-8")
         sent = sock.sendto(msg, tello_address)
