@@ -11,42 +11,49 @@ class DroneFly:
         self.locaddr = (self.host,self.port)
         self.tello_address = ('192.168.10.1', 8889)
 
-            # Create a UDP socket
+        # Create a UDP socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         tello_address = ('192.168.10.1', 8889)
         self.sock.bind(self.locaddr)
+        self.data = -1
+        self.battery= -1
+        self.speed = -1
 
-            # creating a thread that listens to the socket
-        recvThread = threading.Thread(target=self.recv)
-        recvThread.dameon = True
-        recvThread.start()
 
-    def recv(self,):
-        while True:
-            try:
-                data,server = self.sock.recvfrom(1024)
-                #print(data, float(data))
-                self.data=float(data)
-            except Exception:
-                print("Exiting now. press ctrl+c for full exit")
-                break
     @property
     def return_data(self,):
-        return float(self.data)
+        return self.data
 
 
     def send_command(self,msg):
-        msg = msg.encode(encoding="utf-8")
-        sent = self.sock.sendto(msg, self.tello_address)
+        msg_send = msg.encode(encoding="utf-8")
+        sent = self.sock.sendto(msg_send, self.tello_address)
+        self.msg = msg
 
+    def receive_msg(self,):
+        try:
+            data, server = self.sock.recvfrom(1024)
+            data =data.decode(encoding="utf8")
+            if self.msg == "time?":
+                self.data = data
+            else:
+                self.data = float(data)
+            #print(self.msg,self.data)
+        except ValueError:
+            if not data == "ok":
+                print('\033[31m' + data)
+                print('\033[39m')
 
 if __name__ == '__main__':
     obj = DroneFly()
-    obj.send_command("command")
-    print("sent command sleep and will sleep for 7 seconds")
-    time.sleep(7)
-    print("sent message takoff")
-    obj.send_command("takeoff")
-    print("sleep for 7 seconds")
-    obj.send_command("land")
-    print("landing")
+    msg = "command"
+    obj.send_command(msg)
+    obj.receive_msg()
+    msg = "battery?"
+    obj.send_command(msg)
+    obj.receive_msg()
+    obj.return_data
+    msg= "speed?"
+    obj.send_command(msg)
+    obj.receive_msg()
+    obj.return_data
