@@ -14,86 +14,119 @@ and sends command to the drone through the wifi
 
 class CommandCentral:
     def __init__(self):
-        #tuples with commands
-        self.data_prev = (-1) #tuple with the commands from the joystick
+        #tuples with all the input from the controller
         self.data_buttons_prev = (-1)
-        self.data_axes_prev = (-1)
-        # storing variables to compare to the new input
-        self.L_axis_prev = np.zeros(4)
-        self.L_axis_new = np.zeros(4)
-        self.R_axis_prev = np.array(4)
-        self.R_axis_new = np.array(4)
 
         # starting the drone msgs
         self.obj_drone_fly = DroneFly()
         self.obj_drone_fly.send_command("command")
         self.obj_drone_fly.receive_msg()
 
+        #determining the type of controller
+        self.PS_version = -2
+
         #status
         self.battery = -1
         self.speed = -1
         self.time_flight = -1
 
-        #threading
-        self.continue_thread_msg = [0]
-        recvThread = threading.Thread(target=self.thread_send_msg())
-        recvThread.dameon = True
-
-
     def receive_msg(self,data):
-        #stops the thread when you receive a new message
-        self.data = data
-        if self.continue_thread_msg[0]:
-            self.continue_thread_msg[0] = False
-        #takeoff and landing
-        if data.buttons[4] and data.buttons[5]:
-            #self.drone_takoff() # drone takeoff
-            pass
-        if data.axes[2] == -1 and data.axes[5]==-1:
-            self.drone_land() # drone land
+        """
+        A function that triggers when it receives a message from the playstation
+        controller. Here it translates the tuples into the correct buttons and
+        use this information to fly and gather input from the drone.
+        """
 
-        if abs(data.axes[0])==1 or abs(data.axes[1])==1:
-            self.steer_in_the_plane(data.axes[0],data.axes[1])
+        #checking the type of controller
+        if len(data.axes)==6:
+            self.PS_version=3
+        elif len(data.axes)==8:
+            self.PS_version=4
+        else:
+            #printing error message
+            print('\033[31m')
+            print("error in the ps-controller message")
+            print('\033[39m')
 
-        if data.axes[0] or data.axes[1] or data.axes[3] or data.axes[4]:
-            if
-            self.continue_thread_msg[0] = True
-            recvThread = threading.Thread(target=self.thread_send_msg())
-            recvThread.dameon = True
-            recvThread.start()
 
-        #stopping the thread (or at least try)
-        if sum(data.buttons)==0:
-            print("turning thing to false")
-            self.continue_thread_msg[0] = False
+        #assigning buttons from the buttons
+        x, circle, triangle, square = \
+        data.buttons[0], data.buttons[1], data.buttons[2], data.buttons[3]
+
+
+        L_1, R_1, L_2, R_2  = \
+        data.buttons[4], data.buttons[5],data.axes[2], data.axes[5]
+        Select_Share, Start_Options = \
+        data.buttons[8], data.buttons[9]
+
+        #Because of the differences in format between PS3 and PS4 the
+        #information is extracted diffently here.
+        if self.PS_version ==3:
+            arrow_up, arrow_down, arrow_left, arrow_right =\
+            data.buttons[13], data.buttons[14], data.buttons[15], data.buttons[16]
+
+        elif self.PS_version ==4:
+            arrow_up, arrow_down, arrow_left, arrow_right =0,0,0,0
+            if data.axes[6]==1:
+                arrow_left=1
+            elif data.axes[6]==-1:
+                arrow_right=1
+            if data.axes[7]==1:
+                arrow_up =1
+            elif data.axes[7]==-1:
+                arrow_down = 1
+        else:
+            #printing an error message
+            print('\033[31m')
+            print("error in the ps-controller message")
+            print('\033[39m')
+
+
 
         if data.buttons != self.data_buttons_prev:
+            #takeoff and landing
+            if L_1 and R_1:
+                self.drone_takoff()
+            #Added extra help to the PS3-controller as it sometimes has trouble
+            #getting R_2 and L_2 button to work fully
+            if self.PS_version==3:
+                if data.buttons[6] and data.buttons[7]:
+                    self.drone_land()
+            if L_2==-1 and R_2==-1:
+                self.drone_land()
+            if Select_Share:
+                self.do_a_flip()
+
             #steering
-            if data.buttons[0]: # x-button
-                self.go_down() # go downwards
-            if data.buttons[2]: # triangle-button
-                self.go_up() # go upwards
-            if data.buttons[1]: # circle-button
+            if x:
+                self.go_down()
+            if triangle:
+                self.go_up()
+            if circle:
                 self.rotate_cw() #rotate clockwise
-            if data.buttons[3]: # square-button
+            if square:
                 self.rotate_ccw() #rotate counterclockwise
 
-            if data.buttons[9]: # start button
+            if Start_Options: # start button
                 self.status_drone() #checking status
 
+
             #additional steering
-            if data.buttons[13]: #arrow up
+            if arrow_up:
                 self.go_forward()
-            if data.buttons[14]: #arrow down
+            if arrow_down:
                 self.go_back()
-            if data.buttons[15]: #arrow left
+            if arrow_left:
                 self.go_left()
-            if data.buttons[16]: #arrow right
+            if arrow_right:
                 self.go_right()
-        #logging a full tuple of the information
-        self.data_prev = data.axes + data.buttons
-        self.data_axes_prev = data.axes
-        self.data_buttons_prev = data.buttons
+
+        #adding the new message as the previous message
+        if self.PS_version==4:
+            extra_buttons = (arrow_up,arrow_down,arrow_left,arrow_right)
+            self.data_buttons_prev= data.buttons+ extra_buttons
+        else:
+            self.data_buttons_prev = data.buttons
 
     def drone_takoff(self,):
         print("takeoff")
@@ -106,7 +139,7 @@ class CommandCentral:
         self.obj_drone_fly.receive_msg()
     #Simple movement
     def go_up(self,):
-        print("go_up")
+        print("go upwards")
         self.obj_drone_fly.send_command("up 20")
         self.obj_drone_fly.receive_msg()
 
@@ -145,19 +178,13 @@ class CommandCentral:
         self.obj_drone_fly.send_command("ccw 15")
         self.obj_drone_fly.receive_msg()
 
-    def thread_send_msg(self):
-        counter = 0
-        while self.continue_thread_msg[0]:
-            print(self.data.axes[:],str(counter))
-            time.sleep(0.95)
-            counter +=1
-
-
-    def steer_in_the_plane(self,y,x):
-        print("steer_in_the_plane")
+    def do_a_flip(self):
+        print("flip")
+        self.obj_drone_fly.send_command("flip f")
+        self.obj_drone_fly.receive_msg()
 
     def status_drone(self,):
-        #getting battery status
+        #getting battery, speed and flight time printed by pressing start/options
         self.obj_drone_fly.send_command("battery?")
         self.obj_drone_fly.receive_msg()
         self.battery= self.obj_drone_fly.return_data
