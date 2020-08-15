@@ -4,13 +4,12 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Joy
 
 """
-varaible stores is not saved in a good way here. Need to look into send by
-reference perhaps?
+Test script that prints the messages from the PS-controller.
 """
 
 def listener(data):
-    print("hello world")
-    print(data.axes[:])
+    print(data.axes)
+    print(data.buttons)
 
 
 if __name__ == '__main__':

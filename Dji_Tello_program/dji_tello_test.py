@@ -23,7 +23,6 @@ tello_address = ('192.168.10.1', 8889)
 sock.bind(locaddr)
 
 def recv():
-    count = 0
     while True:
         try:
             data, server = sock.recvfrom(1518)
